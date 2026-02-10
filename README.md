@@ -1,0 +1,2 @@
+# api_artwork_scoreboard
+api_artwork_scoreboard
