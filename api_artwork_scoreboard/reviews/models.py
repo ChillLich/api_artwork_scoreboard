@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
+User = get_user_model()
+
 
 class Genre(models.Model):
     name = models.CharField("Название", max_length=256)
@@ -20,7 +22,6 @@ class Title(models.Model):
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, related_name="titles"
     )
-User = get_user_model()
 
 
 class Review(models.Model):
