@@ -22,3 +22,11 @@ class Review(models.Model):
         help_text="Оценка от 1 до 10",
     )
     pub_date = models.DateTimeField(auto_now_add=True)
+
+
+class Comment(models.Model):
+    # TODO: Раскомментить как допишется Title и User
+    # title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="comments")
+    # author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
+    text = models.TextField()
