@@ -4,6 +4,26 @@ from django.db import models
 User = get_user_model()
 
 
+class Genre(models.Model):
+    name = models.CharField("Название", max_length=256)
+    slug = models.SlugField(max_length=50)
+
+
+class Category(models.Model):
+    name = models.CharField("Название", max_length=256)
+    slug = models.SlugField(max_length=50)
+
+
+class Title(models.Model):
+    name = models.CharField("Название", max_length=256)
+    year = models.IntegerField("Год выпуска")
+    description = models.TextField("Описание")
+    genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, related_name="titles")
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, related_name="titles"
+    )
+
+
 class Review(models.Model):
 
     class Meta:
@@ -13,9 +33,8 @@ class Review(models.Model):
             )
         ]
 
-    # TODO: Раскомментить как допишется Title и User
-    # title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="reviews")
-    # author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="reviews")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     text = models.TextField()
     score = models.PositiveSmallIntegerField(
         choices=[(i, str(i)) for i in range(1, 11)],
@@ -25,8 +44,7 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
-    # TODO: Раскомментить как допишется Title и User
-    # title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="comments")
-    # author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
     text = models.TextField()
