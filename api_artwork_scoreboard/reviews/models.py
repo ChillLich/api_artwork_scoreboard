@@ -29,7 +29,7 @@ class Review(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(score__gte=1, score__lte=10), name="score_range_1_to_10"
+                check=models.Q(score__gte=1, score__lte=10), name="score_range_1_to_10"
             )
         ]
 
