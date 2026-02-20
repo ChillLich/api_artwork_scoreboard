@@ -1,9 +1,11 @@
 import re
+from datetime import date
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from rest_framework import serializers
+from reviews.models import Category, Genre, Title
 
 User = get_user_model()
 
@@ -72,3 +74,50 @@ class TokenSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+
+
+class CategoryGenreSerializerMixin(serializers.ModelSerializer):
+    def validate_slug(self, value):
+        if not re.match(r"^[-a-zA-Z0-9_]+$", value):
+            raise serializers.ValidationError(
+                "Slug может содержать только латинские буквы, цифры, дефис и подчёркивание."
+            )
+        return value
+
+
+class CategorySerializer(CategoryGenreSerializerMixin):
+    class Meta:
+        model = Category
+        fields = ("name", "slug")
+
+
+class GenreSerializer(CategoryGenreSerializerMixin):
+    class Meta:
+        model = Genre
+        fields = ("name", "slug")
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
+    rating = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = ("id", "name", "year", "rating", "description", "genre", "category")
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(slug_field="slug", queryset=Category.objects.all())
+    genre = serializers.SlugRelatedField(slug_field="slug", queryset=Genre.objects.all(), many=True)
+    description = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Title
+        fields = ("id", "name", "year", "description", "genre", "category")
+
+    def validate_year(self, value):
+        current_year = date.today().year
+        if value > current_year:
+            raise serializers.ValidationError("Год выпуска не может быть больше текущего.")
+        return value

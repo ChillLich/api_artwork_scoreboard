@@ -2,12 +2,28 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.core.signing import TimestampSigner
-from rest_framework import generics, status
+from django.db.models import Avg
+from django_filters.rest_framework import (
+    CharFilter,
+    DjangoFilterBackend,
+    FilterSet,
+    NumberFilter,
+)
+from rest_framework import filters, generics, mixins, status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from reviews.models import Category, Genre, Title
 
-from .serializers import SignupSerializer, TokenSerializer
+from .permissions import IsAdminOrReadOnly
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    SignupSerializer,
+    TitleReadSerializer,
+    TitleWriteSerializer,
+    TokenSerializer,
+)
 
 User = get_user_model()
 
@@ -65,3 +81,67 @@ class TokenView(generics.GenericAPIView):
         access_token = str(refresh.access_token)
 
         return Response({"token": access_token})
+
+
+class CategoryViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    lookup_field = "slug"
+    search_fields = ("name",)
+    ordering = ("name",)
+
+
+class GenreViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    lookup_field = "slug"
+    search_fields = ("name",)
+    ordering = ("name",)
+
+
+class TitleFilter(FilterSet):
+    genre = CharFilter(field_name="genre__slug")
+    category = CharFilter(field_name="category__slug")
+    year = NumberFilter(field_name="year")
+    name = CharFilter(field_name="name", lookup_expr="icontains")
+
+    class Meta:
+        model = Title
+        fields = ["genre", "category", "year", "name"]
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all().prefetch_related("genre", "category")
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
+    filterset_class = TitleFilter
+    ordering_fields = ("name", "year")
+    ordering = ("name",)
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return TitleReadSerializer
+        return TitleWriteSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action in ("list", "retrieve"):
+            return queryset.annotate(rating=Avg("reviews__score"))
+        return queryset
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
