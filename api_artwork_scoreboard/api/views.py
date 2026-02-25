@@ -83,34 +83,27 @@ class TokenView(generics.GenericAPIView):
         return Response({"token": access_token})
 
 
-class CategoryViewSet(
+class CategoryGenreViewSetMixin(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    lookup_field = "slug"
+    search_fields = ("name",)
+    ordering = ("name",)
+
+
+class CategoryViewSet(CategoryGenreViewSetMixin):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    lookup_field = "slug"
-    search_fields = ("name",)
-    ordering = ("name",)
 
 
-class GenreViewSet(
-    mixins.ListModelMixin,
-    mixins.CreateModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
+class GenreViewSet(CategoryGenreViewSetMixin):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    lookup_field = "slug"
-    search_fields = ("name",)
-    ordering = ("name",)
 
 
 class TitleFilter(FilterSet):
