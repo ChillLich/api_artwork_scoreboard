@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from rest_framework import serializers
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
@@ -126,3 +126,30 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         if value > current_year:
             raise serializers.ValidationError("Год выпуска не может быть больше текущего.")
         return value
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(slug_field="username", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ("id", "text", "author", "score", "pub_date")
+        read_only_fields = ("author", "title")
+
+    def validate(self, data):
+        # Проверить что нет экземпляра чтобы не блокировать PATCH запрос проверкой на уникальность
+        if self.instance is None:
+            title_id = self.context["view"].kwargs.get("title_id")
+            user = self.context["request"].user
+            if Review.objects.filter(title_id=title_id, author=user).exists():
+                raise serializers.ValidationError("Вы уже оставляли отзыв на это произведение.")
+        return data
+
+
+class CommentReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(slug_field="username", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ("id", "text", "author", "pub_date")
+        read_only_fields = ("author", "review")

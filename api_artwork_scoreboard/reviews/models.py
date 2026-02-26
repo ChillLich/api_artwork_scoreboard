@@ -37,9 +37,10 @@ class Review(models.Model):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(fields=["title", "author"], name="unique_review"),
             models.CheckConstraint(
                 check=models.Q(score__gte=1, score__lte=10), name="score_range_1_to_10"
-            )
+            ),
         ]
 
     title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="reviews")
@@ -53,7 +54,7 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
-    title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
     text = models.TextField()
+    pub_date = models.DateTimeField(auto_now_add=True)

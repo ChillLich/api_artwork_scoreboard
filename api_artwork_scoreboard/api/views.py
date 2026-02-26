@@ -3,33 +3,28 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.core.signing import TimestampSigner
 from django.db.models import Avg
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import (
     CharFilter,
     DjangoFilterBackend,
     FilterSet,
     NumberFilter,
 )
-from rest_framework import filters, generics, mixins, status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework import filters, generics, mixins, permissions, status, viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 
-from .permissions import IsAdminOrReadOnly
-from .serializers import (
-    CategorySerializer,
-    GenreSerializer,
-    SignupSerializer,
-    TitleReadSerializer,
-    TitleWriteSerializer,
-    TokenSerializer,
-)
+from . import serializers
+from .permissions import IsAdminOrReadOnly, IsModerAuthorOrReadOnly
 
 User = get_user_model()
 
 
 class SignupView(generics.GenericAPIView):
-    serializer_class = SignupSerializer
+    serializer_class = serializers.SignupSerializer
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -68,7 +63,7 @@ class SignupView(generics.GenericAPIView):
 
 
 class TokenView(generics.GenericAPIView):
-    serializer_class = TokenSerializer
+    serializer_class = serializers.TokenSerializer
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -98,12 +93,12 @@ class CategoryGenreViewSetMixin(
 
 class CategoryViewSet(CategoryGenreViewSetMixin):
     queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    serializer_class = serializers.CategorySerializer
 
 
 class GenreViewSet(CategoryGenreViewSetMixin):
     queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
+    serializer_class = serializers.GenreSerializer
 
 
 class TitleFilter(FilterSet):
@@ -118,6 +113,7 @@ class TitleFilter(FilterSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    http_method_names = ["get", "post", "patch", "delete", "head", "options", "trace"]
     queryset = Title.objects.all().prefetch_related("genre", "category")
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
@@ -127,8 +123,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ("list", "retrieve"):
-            return TitleReadSerializer
-        return TitleWriteSerializer
+            return serializers.TitleReadSerializer
+        return serializers.TitleWriteSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -136,5 +132,36 @@ class TitleViewSet(viewsets.ModelViewSet):
             return queryset.annotate(rating=Avg("reviews__score"))
         return queryset
 
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+class ReviewViewset(viewsets.ModelViewSet):
+    http_method_names = ["get", "post", "patch", "delete", "head", "options", "trace"]
+    permission_classes = (IsModerAuthorOrReadOnly,)
+    serializer_class = serializers.ReviewSerializer
+
+    def get_queryset(self):
+        title_id = self.kwargs.get("title_id")
+        if not Title.objects.filter(id=title_id).exists():
+            raise Http404("Произведение не найдено")
+        return Review.objects.filter(title_id=title_id)
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, id=title_id)
+        serializer.save(author=self.request.user, title=title)
+
+
+class CommentReviewViewset(viewsets.ModelViewSet):
+    http_method_names = ["get", "post", "patch", "delete", "head", "options", "trace"]
+    permission_classes = (IsModerAuthorOrReadOnly,)
+    serializer_class = serializers.CommentReviewSerializer
+
+    def get_queryset(self):
+        review_id = self.kwargs.get("review_id")
+        if not Review.objects.filter(id=review_id).exists():
+            raise Http404("Отзыв не найден")
+        return Comment.objects.filter(review_id=review_id)
+
+    def perform_create(self, serializer):
+        review_id = self.kwargs.get("review_id")
+        review = get_object_or_404(Review, id=review_id)
+        serializer.save(author=self.request.user, review=review)
