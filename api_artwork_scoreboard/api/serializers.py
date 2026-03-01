@@ -64,15 +64,6 @@ class TokenSerializer(serializers.Serializer):
                 "Неверный код подтверждения для данного пользователя."
             )
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Пользователь не найден.")
-
-        if user.username != username:
-            raise serializers.ValidationError("Неверный username для данного email.")
-
-        data["user"] = user
         return data
 
 

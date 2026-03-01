@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.core.signing import TimestampSigner
 from django.db.models import Avg
-from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import (
     CharFilter,
@@ -39,7 +38,7 @@ class SignupView(generics.GenericAPIView):
         if not created:
             if user.username != username:
                 return Response(
-                    {"username": ["Этот email уже зарегистрирован с другим username."]},
+                    {"username": "Этот email уже зарегистрирован с другим username."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         else:
@@ -67,10 +66,19 @@ class TokenView(generics.GenericAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        username = request.data.get("username")
+
+        if not username:
+            return Response(
+                {"detail": "Поле username обязательно."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"detail": "Пользователь не найден."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
@@ -141,7 +149,7 @@ class ReviewViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         title_id = self.kwargs.get("title_id")
         if not Title.objects.filter(id=title_id).exists():
-            raise Http404("Произведение не найдено")
+            return Response({"detail": "Произведение не найдено"}, status=status.HTTP_404_NOT_FOUND)
         return Review.objects.filter(title_id=title_id)
 
     def perform_create(self, serializer):
@@ -158,7 +166,7 @@ class CommentReviewViewset(viewsets.ModelViewSet):
     def get_queryset(self):
         review_id = self.kwargs.get("review_id")
         if not Review.objects.filter(id=review_id).exists():
-            raise Http404("Отзыв не найден")
+            return Response({"detail": "Отзыв не найден"}, status=status.HTTP_404_NOT_FOUND)
         return Comment.objects.filter(review_id=review_id)
 
     def perform_create(self, serializer):
