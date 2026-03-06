@@ -17,7 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Category, Comment, Genre, Review, Title
 
 from . import serializers
-from .permissions import IsAdminOrReadOnly, IsModerAuthorOrReadOnly
+from .permissions import IsAdminOnly, IsAdminOrReadOnly, IsModerAuthorOrReadOnly
 
 User = get_user_model()
 
@@ -173,3 +173,36 @@ class CommentReviewViewset(viewsets.ModelViewSet):
         review_id = self.kwargs.get("review_id")
         review = get_object_or_404(Review, id=review_id)
         serializer.save(author=self.request.user, review=review)
+
+
+class UsersViewset(viewsets.ModelViewSet):
+    http_method_names = ["get", "post", "patch", "delete", "head", "options", "trace"]
+    permission_classes = (IsAdminOnly,)
+    queryset = User.objects.all()
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    lookup_field = "username"
+    search_fields = ("username",)
+    ordering = ("username",)
+
+    # serializer_class = serializers.UsersSerializer
+    def get_serializer_class(self):
+        if self.action == "post":
+            return serializers.SignupSerializer
+        elif self.action == "partial_update":
+            return serializers.UsersUpdateProfileForAdminSerializer
+        return serializers.UsersSerializer
+
+
+class UsersMeViewset(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    http_method_names = ["get", "patch", "head", "options", "trace"]
+    permission_classes = (IsAuthenticated,)
+    queryset = User.objects.all()
+
+    # serializer_class = serializers.UsersMeSerializer
+    def get_serializer_class(self):
+        if self.action == "partial_update":
+            return serializers.UsersUpdateForSelfProfileSerializer
+        return serializers.UsersSerializer
+
+    def get_object(self):
+        return self.request.user
