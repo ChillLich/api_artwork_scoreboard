@@ -30,3 +30,10 @@ class IsModerAuthorOrReadOnly(permissions.BasePermission):
             or request.user.is_superuser
             or request.user.role in ("admin", "moderator")
         )
+
+
+class IsAdminOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (
+            request.user.is_superuser or request.user.role == "admin"
+        )

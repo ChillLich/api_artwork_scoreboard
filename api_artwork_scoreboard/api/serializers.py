@@ -144,3 +144,44 @@ class CommentReviewSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ("id", "text", "author", "pub_date")
         read_only_fields = ("author", "review")
+
+
+class UsersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("username", "email", "first_name", "last_name", "bio", "role")
+
+
+class UsersUpdateProfileForAdminSerializer(serializers.ModelSerializer):
+    """Для обновления профиля администратором (role изменяема)."""
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "first_name", "last_name", "bio", "role")
+        extra_kwargs = {
+            "username": {"required": False},
+            "email": {"required": False},
+        }
+
+    def validate_username(self, value):
+        queryset = User.objects.all()
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.filter(username=value).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return value
+
+    def validate_email(self, value):
+        queryset = User.objects.all()
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
+
+
+class UsersUpdateForSelfProfileSerializer(UsersUpdateProfileForAdminSerializer):
+    """Для обновления собственного профиля (role только для чтения)."""
+
+    class Meta(UsersUpdateProfileForAdminSerializer.Meta):
+        read_only_fields = ("role",)
