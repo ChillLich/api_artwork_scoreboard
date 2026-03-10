@@ -6,7 +6,7 @@ from django.db.utils import IntegrityError
 
 from tests.utils import (
     invalid_data_for_user_patch_and_creation,
-    invalid_data_for_username_and_email_fields
+    invalid_data_for_username_and_email_fields,
 )
 
 
@@ -70,7 +70,7 @@ class Test00UserRegistration:
                 'о неправильно заполненных полях.'
             )
 
-        valid_email = 'validemail@artwork_scoreboard.fake'
+        valid_email = 'validemail@artworkscoreboard.fake'
         invalid_data = {
             'email': valid_email,
         }
@@ -107,7 +107,7 @@ class Test00UserRegistration:
     def test_00_valid_data_user_signup(self, client, django_user_model):
         outbox_before_count = len(mail.outbox)
         valid_data = {
-            'email': 'valid@artwork_scoreboard.fake',
+            'email': 'valid@artworkscoreboard.fake',
             'username': 'valid_username'
         }
 
@@ -155,7 +155,7 @@ class Test00UserRegistration:
                                              django_user_model):
         outbox_before_count = len(mail.outbox)
         valid_data = {
-            'email': 'valid@artwork_scoreboard.fake',
+            'email': 'valid@artworkscoreboard.fake',
             'username': 'valid_username'
         }
         response = admin_client.post(
@@ -254,7 +254,7 @@ class Test00UserRegistration:
         )
 
         valid_data = {
-            'email': 'valid@artwork_scoreboard.fake',
+            'email': 'valid@artworkscoreboard.fake',
             'username': 'valid_username'
         }
         response = client.post(self.URL_SIGNUP, data=valid_data)
@@ -276,7 +276,7 @@ class Test00UserRegistration:
 
     def test_00_registration_me_username_restricted(self, client):
         valid_data = {
-            'email': 'valid@artwork_scoreboard.fake',
+            'email': 'valid@artworkscoreboard.fake',
             'username': 'me'
         }
         response = client.post(self.URL_SIGNUP, data=valid_data)
@@ -287,8 +287,8 @@ class Test00UserRegistration:
         )
 
     def test_00_registration_same_email_restricted(self, client):
-        valid_email_1 = 'test_duplicate_1@artwork_scoreboard.fake'
-        valid_email_2 = 'test_duplicate_2@artwork_scoreboard.fake'
+        valid_email_1 = 'test_duplicate_1@artworkscoreboard.fake'
+        valid_email_2 = 'test_duplicate_2@artworkscoreboard.fake'
         valid_username_1 = 'valid_username_1'
         valid_username_2 = 'valid_username_2'
 
@@ -337,7 +337,7 @@ class Test00UserRegistration:
 
     def test_get_new_confirmation_code_for_existing_user(self, client):
         valid_data = {
-            'email': 'test_email@artwork_scoreboard.fake',
+            'email': 'test_email@artworkscoreboard.fake',
             'username': 'valid_username_1'
         }
         response = client.post(self.URL_SIGNUP, data=valid_data)
@@ -359,7 +359,7 @@ class Test00UserRegistration:
     ):
         user_cnt = django_user_model.objects.count()
         valid_data = {
-            'email': 'test_email@artwork_scoreboard.fake',
+            'email': 'test_email@artworkscoreboard.fake',
             'username': 'valid_username_1'
         }
         admin_client.post(self.URL_ADMIN_CREATE_USER, data=valid_data)

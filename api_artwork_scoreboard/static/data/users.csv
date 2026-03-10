@@ -1,6 +1,6 @@
 id,username,email,role,bio,first_name,last_name
-100,bingobongo,bingobongo@artwork_scoreboard.fake,user,,,
-101,capt_obvious,capt_obvious@artwork_scoreboard.fake,admin,,,
-102,faust,faust@artwork_scoreboard.fake,user,,,
-103,reviewer,reviewer@artwork_scoreboard.fake,user,,,
-104,angry,angry@artwork_scoreboard.fake,moderator,,,
+100,bingobongo,bingobongo@artworkscoreboard.fake,user,,,
+101,capt_obvious,capt_obvious@artworkscoreboard.fake,admin,,,
+102,faust,faust@artworkscoreboard.fake,user,,,
+103,reviewer,reviewer@artworkscoreboard.fake,user,,,
+104,angry,angry@artworkscoreboard.fake,moderator,,,
